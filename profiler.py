@@ -37,7 +37,7 @@ parser.add_argument('--primusrun', action='store_true',default=False, help='whet
 parser.add_argument('--output', action='store', help='the path to the output file')
 
 #TODO @FletchDev ensure it runs with sudo permissions
-parser.add_argument('--jetson', action='store', help='the path to tegra-stats')
+parser.add_argument('--jetson', action='store',default='0', help='the path to tegra-stats')
 
 parser.add_argument('--nogpu', action='store_true', help='do not track GPU usage')
 
@@ -60,10 +60,15 @@ def getGpu(pid):
 
 #TODO @FletchDev
 def getJetsonGpu():
-	gpu = subprocess.Popen('todo', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	out = 'RAM 1640/7854MB (lfb 819x4MB) SWAP 1/8192MB (cached 0MB) cpu [0%@346,0%@355,0%@355,0%@347,0%@347,0%@347] EMC 0%@665 APE 150 VDE 1203 GR3D 0%@140'
+	val = out.split()[17].split('%@')[1] + "%"
+	print(args.jetson)
+	gpu = subprocess.Popen(args.jetson, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	while len(gpu.stdout.readlines()) < 1:
 		pass
-	return "todo"
+	out = gpu.stdout.readlines()[0]
+	val = out.split()[17].split('%@')[1] + "%"
+	return val
 
 #TODO @FletchDev better formatting
 def getNvidGpu(pid):	
@@ -89,15 +94,15 @@ nvidiatest = subprocess.Popen(prefix + ' nvidia-smi', shell=True,
 				stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 testResult = str(nvidiatest.stdout.readlines())
-
-if testResult[0].startswith('NVIDIA-SMI has failed because it couldn'):
-	print("nvidia-smi failed: could\'t communicate to the nvidia drivers")
-	print("are you using bumblebee? use --primusrun or --optirun to use these prefixes")
-	quit(-1)
-elif len(testResult) < 43:
-	print("Bash has failed to find " + prefix + " nvidia-smi")
-	print("Are the nvidia Drivers setup correctly?")
-	quit(-1)
+if args.jetson == 0:
+	if testResult[0].startswith('NVIDIA-SMI has failed because it couldn'):
+		print("nvidia-smi failed: could\'t communicate to the nvidia drivers")
+		print("are you using bumblebee? use --primusrun or --optirun to use these prefixes")
+		quit(-1)
+	elif len(testResult) < 43:
+		print("Bash has failed to find " + prefix + " nvidia-smi")
+		print("Are the nvidia Drivers setup correctly?")
+		quit(-1)
 
 #TODO @FletchDev add print the command here
 print('Starting command ' + args.command + " at "+ str(datetime.datetime.now().time()))
